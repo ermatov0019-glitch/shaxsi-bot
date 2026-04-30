@@ -1,0 +1,6 @@
+aiogram
+python-dotenv
+google-generativeai
+aiohttp
+pyrogram
+yt-dlp
