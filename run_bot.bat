@@ -1,0 +1,9 @@
+@echo off
+title Shaxsi Bot
+echo Shaxsi bot ishga tushmoqda...
+echo Kutubxonalar tekshirilmoqda...
+python -m pip install -r requirements.txt
+echo.
+echo Bot yoqilmoqda...
+python main.py
+pause
