@@ -1,12 +1,12 @@
 import asyncio
 import os
 import logging
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.types import FSInputFile
 from dotenv import load_dotenv
 import google.generativeai as genai
-from aiohttp import web
 
 # Sozlamalar
 load_dotenv()
@@ -24,20 +24,19 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# --- Render uchun qalbaki web server ---
-async def handle(request):
-    return web.Response(text="Bot is running!")
+# --- Render uchun oddiy HTTP Server (Threading bilan) ---
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(b"Bot is active!")
 
-async def start_web_server():
-    app = web.Application()
-    app.router.add_get("/", handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    # Render beradigan PORT-ni ishlatamiz, agar yo'q bo'lsa 8080
+def run_http_server():
     port = int(os.environ.get("PORT", 8080))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-    print(f"Web server {port}-portda ishga tushdi.")
+    server = HTTPServer(('0.0.0.0', port), SimpleHandler)
+    print(f"Render uchun HTTP server {port}-portda ishga tushdi.")
+    server.serve_forever()
 
 # --- Gemini AI funksiyasi ---
 async def get_ai_response(prompt: str):
@@ -46,8 +45,6 @@ async def get_ai_response(prompt: str):
         return response.text.replace("**", "*")
     except Exception as e:
         logging.error(f"AI error: {e}")
-        if "403" in str(e):
-            return "Xatolik: API kalit bloklangan. Yangi kalit qo'ying! 🔑"
         return "Kechirasiz, AI hozircha javob bera olmaydi. 😔"
 
 @dp.message(Command("start"))
@@ -61,11 +58,12 @@ async def chat_handler(message: types.Message):
     await message.answer(response, parse_mode="Markdown")
 
 async def main():
-    # Bir vaqtda ham botni, ham web serverni ishga tushiramiz
-    await asyncio.gather(
-        dp.start_polling(bot),
-        start_web_server()
-    )
+    # HTTP serverni alohida oqimda (thread) ishga tushiramiz
+    server_thread = threading.Thread(target=run_http_server, daemon=True)
+    server_thread.start()
+    
+    print("Bot polling boshlanmoqda...")
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     try:
