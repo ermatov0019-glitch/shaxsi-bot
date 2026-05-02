@@ -112,14 +112,17 @@ async def main():
             await userbot.start()
             logger.info("UserBot muvaffaqiyatli ishga tushdi.")
         except Exception as e:
-            logger.error(f"UserBot Start Error: {e}")
+            logger.error(f"UserBot ishga tushmadi (Session xatosi bo'lishi mumkin): {e}")
 
     try:
-        logger.info("Aiogram polling boshlanmoqda...")
+        print("Bot polling boshlanmoqda (v3.0)...")
         await dp.start_polling(bot, skip_updates=True)
     finally:
         if userbot:
-            await userbot.stop()
+            try:
+                await userbot.stop()
+            except:
+                pass
 
 if __name__ == "__main__":
     threading.Thread(target=run_http_server, daemon=True).start()
