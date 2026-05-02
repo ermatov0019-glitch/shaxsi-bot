@@ -70,16 +70,18 @@ async def main():
     userbot = None
     if STRING_SESSION:
         try:
+            # Safely convert API_ID to int
+            clean_api_id = int(str(API_ID).strip().replace("+", ""))
             userbot = Client(
                 "my_account", 
-                api_id=API_ID, 
+                api_id=clean_api_id, 
                 api_hash=API_HASH, 
                 session_string=STRING_SESSION, 
                 in_memory=True
             )
             logger.info("UserBot konfiguratsiyasi tayyor.")
         except Exception as e:
-            logger.error(f"UserBot Init Error: {e}")
+            logger.error(f"UserBot Init Error (API_ID xato bo'lishi mumkin): {e}")
 
     # --- Handlers ---
     @dp.message(Command("start"))
