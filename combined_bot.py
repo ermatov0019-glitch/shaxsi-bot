@@ -60,7 +60,7 @@ async def get_ai_response(prompt: str, is_userbot=False):
         full_prompt = f"{prefix} Savol: {prompt}" if prefix else prompt
         
         response = await ai_model.generate_content_async(full_prompt)
-        return response.text.replace("**", "*")
+        return response.text
     except Exception as e:
         logger.error(f"AI Error: {e}")
         return "Kechirasiz, AI hozircha javob bera olmaydi. 😔"
@@ -74,7 +74,10 @@ async def start_handler(message: types.Message):
 async def bot_chat_handler(message: types.Message):
     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
     response = await get_ai_response(message.text)
-    await message.answer(response, parse_mode="Markdown")
+    try:
+        await message.answer(response, parse_mode="Markdown")
+    except Exception:
+        await message.answer(response)
 
 # --- UserBot Handlers ---
 @userbot.on_message(filters.private & ~filters.me)
@@ -82,7 +85,10 @@ async def userbot_auto_reply(client, message):
     logger.info(f"UserBot received: {message.text[:50]}...")
     response = await get_ai_response(message.text, is_userbot=True)
     if response:
-        await message.reply(f"🤖 (AI Assistant):\n\n{response}")
+        try:
+            await message.reply(f"🤖 (AI Assistant):\n\n{response}", parse_mode="markdown")
+        except Exception:
+            await message.reply(f"🤖 (AI Assistant):\n\n{response}")
 
 # --- Main Runner ---
 async def main():
