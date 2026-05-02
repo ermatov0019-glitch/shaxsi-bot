@@ -34,10 +34,10 @@ dp = Dispatcher()
 # --- Pyrogram UserBot Setup ---
 if STRING_SESSION:
     userbot = Client("my_account", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION)
-    logger.info("Using String Session for UserBot.")
+    logger.info("STRING_SESSION topildi, UserBot string session orqali ishga tushadi.")
 else:
     userbot = Client("my_account", api_id=API_ID, api_hash=API_HASH)
-    logger.info("Using file session for UserBot.")
+    logger.warning("DIQQAT: STRING_SESSION topilmadi! UserBot fayl orqali ishlashga harakat qiladi (hostingda bu xatolik berishi mumkin).")
 
 # --- Render Port Binding (HTTP Server) ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
