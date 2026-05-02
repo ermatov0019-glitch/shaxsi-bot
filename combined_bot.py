@@ -95,8 +95,10 @@ async def main():
             await message.answer(response)
 
     if userbot:
-        @userbot.on_message(filters.private & ~filters.me)
+        # --- UserBot Handlers ---
+        @userbot.on_message(filters.private & filters.incoming)
         async def userbot_auto_reply(client, message):
+            logger.info(f"UserBot: {message.text[:50]}")
             response = await get_ai_response(message.text)
             if response:
                 try:
