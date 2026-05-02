@@ -92,13 +92,6 @@ async def userbot_auto_reply(client, message):
 
 # --- Main Runner ---
 async def main():
-    # 1. Start HTTP Server in a separate thread immediately
-    server_thread = threading.Thread(target=run_http_server, daemon=True)
-    server_thread.start()
-    
-    # 2. Start Both Bots
-    logger.info("Starting bots...")
-    
     # Start UserBot
     await userbot.start()
     logger.info("UserBot started.")
@@ -110,6 +103,10 @@ async def main():
         await userbot.stop()
 
 if __name__ == "__main__":
+    # 1. Start HTTP Server immediately to satisfy Render
+    server_thread = threading.Thread(target=run_http_server, daemon=True)
+    server_thread.start()
+    
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
