@@ -98,6 +98,7 @@ async def main():
     
     # Start Aiogram Polling (this keeps the process alive)
     try:
+        print("Bot polling boshlanmoqda (Combined Version)...")
         await dp.start_polling(bot, skip_updates=True)
     finally:
         await userbot.stop()
