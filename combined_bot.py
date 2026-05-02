@@ -1,5 +1,8 @@
-import asyncio
 import os
+# IMPORTANT: Disable Pyrogram's sync wrappers before ANY other imports
+os.environ["PYROGRAM_SYNC"] = "0"
+
+import asyncio
 import logging
 import threading
 import traceback
@@ -55,13 +58,13 @@ def run_http_server():
     server.serve_forever()
 
 async def main():
-    logger.info("Botni ishga tushirish (Python 3.14 fix)...")
+    logger.info("Botni ishga tushirish (Python 3.14 SYNC=0 fix)...")
     
     # 1. Initialize Aiogram
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     
-    # 2. IMPORTANT: Import Pyrogram INSIDE main() to avoid loop errors
+    # 2. Import Pyrogram now (SYNC is already disabled)
     from pyrogram import Client, filters
     
     userbot = None
@@ -78,7 +81,7 @@ async def main():
         except Exception as e:
             logger.error(f"UserBot Init Error: {e}")
 
-    # --- Aiogram Handlers ---
+    # --- Handlers ---
     @dp.message(Command("start"))
     async def start_handler(message: types.Message):
         await message.answer("Salom! Men Render-da ishlayotgan aqlli botman. 🚀")
@@ -91,7 +94,6 @@ async def main():
         except:
             await message.answer(response)
 
-    # --- Pyrogram Handlers (Registered manually) ---
     if userbot:
         @userbot.on_message(filters.private & ~filters.me)
         async def userbot_auto_reply(client, message):
@@ -118,9 +120,7 @@ async def main():
             await userbot.stop()
 
 if __name__ == "__main__":
-    # Start HTTP server immediately
     threading.Thread(target=run_http_server, daemon=True).start()
-    
     try:
         asyncio.run(main())
     except Exception:
