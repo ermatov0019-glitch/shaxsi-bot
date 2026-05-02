@@ -13,7 +13,7 @@ async def generate():
         print("XATO: .env faylida API_ID va API_HASH bo'lishi shart!")
         return
 
-    async with Client(":memory:", api_id=api_id, api_hash=api_hash) as app:
+    async with Client("session_generator", api_id=api_id, api_hash=api_hash, in_memory=True) as app:
         session_string = await app.export_session_string()
         print("\n" + "="*50)
         print("SIZNING STRING SESSION:")
