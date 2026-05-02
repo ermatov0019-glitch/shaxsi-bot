@@ -6,7 +6,6 @@ import traceback
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from pyrogram import Client, filters
 from dotenv import load_dotenv
 import google.generativeai as genai
 
@@ -56,21 +55,30 @@ def run_http_server():
     server.serve_forever()
 
 async def main():
-    logger.info("Botni ishga tushirish boshlandi...")
+    logger.info("Botni ishga tushirish (Python 3.14 fix)...")
     
-    # 1. Initialize Bots
+    # 1. Initialize Aiogram
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
+    
+    # 2. IMPORTANT: Import Pyrogram INSIDE main() to avoid loop errors
+    from pyrogram import Client, filters
     
     userbot = None
     if STRING_SESSION:
         try:
-            userbot = Client("my_account", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
+            userbot = Client(
+                "my_account", 
+                api_id=API_ID, 
+                api_hash=API_HASH, 
+                session_string=STRING_SESSION, 
+                in_memory=True
+            )
             logger.info("UserBot konfiguratsiyasi tayyor.")
         except Exception as e:
             logger.error(f"UserBot Init Error: {e}")
 
-    # --- Handlers ---
+    # --- Aiogram Handlers ---
     @dp.message(Command("start"))
     async def start_handler(message: types.Message):
         await message.answer("Salom! Men Render-da ishlayotgan aqlli botman. 🚀")
@@ -83,6 +91,7 @@ async def main():
         except:
             await message.answer(response)
 
+    # --- Pyrogram Handlers (Registered manually) ---
     if userbot:
         @userbot.on_message(filters.private & ~filters.me)
         async def userbot_auto_reply(client, message):
