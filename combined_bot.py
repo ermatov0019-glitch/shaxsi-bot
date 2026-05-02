@@ -103,13 +103,9 @@ async def main():
     await userbot.start()
     logger.info("UserBot started.")
     
-    # Start Aiogram Polling
-    # We use asyncio.gather to run polling and keep the script alive
+    # Start Aiogram Polling (this keeps the process alive)
     try:
-        await asyncio.gather(
-            dp.start_polling(bot, skip_updates=True),
-            idle() # This keeps the pyrogram client running
-        )
+        await dp.start_polling(bot, skip_updates=True)
     finally:
         await userbot.stop()
 
