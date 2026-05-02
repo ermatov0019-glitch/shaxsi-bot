@@ -107,7 +107,7 @@ async def main():
     # We use asyncio.gather to run polling and keep the script alive
     try:
         await asyncio.gather(
-            dp.start_polling(bot),
+            dp.start_polling(bot, skip_updates=True),
             idle() # This keeps the pyrogram client running
         )
     finally:
