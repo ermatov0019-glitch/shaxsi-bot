@@ -21,7 +21,24 @@ STRING_SESSION = os.getenv("STRING_SESSION") # For hosting
 
 # --- AI Setup ---
 genai.configure(api_key=GEMINI_API_KEY)
-ai_model = genai.GenerativeModel('gemini-flash-latest')
+
+# Tizim yo'riqnomasi (AI-ga shaxsiyat berish)
+SYSTEM_PROMPT = """
+Siz foydalanuvchining shaxsiy va aqlli yordamchisisiz. Sizning vazifangiz - uning shaxsiy xabarlariga u yo'qligida javob berish.
+
+Quyidagi qoidalarga qat'iy amal qiling:
+1. Shaxsiylik: Siz bot kabi emas, balki egangizning yaqin yordamchisi yoki uning o'zi kabi samimiy javob bering. Javoblaringiz qisqa, lunda va foydali bo'lsin.
+2. Til: Faqat o'zbek tilida (agar foydalanuvchi rus yoki ingliz tilida yozmasa) javob bering. O'zbek tilining imlo qoidalariga va o'zaro hurmatga amal qiling.
+3. Holat: Agar foydalanuvchi muhim narsa so'rasa, egangiz hozirda bandligini va bo'shashi bilan javob berishini muloyimlik bilan tushuntiring.
+4. Sun'iy intellekt: Foydalanuvchining savollariga mantiqiy va aqlli javob bering. Agar savol texnik yoki murakkab bo'lsa, Gemini imkoniyatlaridan foydalanib yordam bering.
+5. Taqiqlar: Hech qachon qo'pol gapirmang, maxfiy ma'lumotlarni (parollar, shaxsiy raqamlar) ulashmang.
+6. Stil: O'ta rasmiy bo'lib ketmang, suhbatdoshning uslubiga moslashing (do'stona yoki professional).
+"""
+
+ai_model = genai.GenerativeModel(
+    model_name='gemini-1.5-flash',
+    system_instruction=SYSTEM_PROMPT
+)
 
 # --- Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -54,12 +71,9 @@ def run_http_server():
     server.serve_forever()
 
 # --- AI Logic ---
-async def get_ai_response(prompt: str, is_userbot=False):
+async def get_ai_response(prompt: str):
     try:
-        prefix = "Siz foydalanuvchining shaxsiy yordamchisiz. Barcha savollarga faqat o'zbek tilida, samimiy javob bering." if is_userbot else ""
-        full_prompt = f"{prefix} Savol: {prompt}" if prefix else prompt
-        
-        response = await ai_model.generate_content_async(full_prompt)
+        response = await ai_model.generate_content_async(prompt)
         return response.text
     except Exception as e:
         logger.error(f"AI Error: {e}")
@@ -85,7 +99,7 @@ async def bot_chat_handler(message: types.Message):
 @userbot.on_message(filters.private & ~filters.me)
 async def userbot_auto_reply(client, message):
     logger.info(f"UserBot received: {message.text[:50]}...")
-    response = await get_ai_response(message.text, is_userbot=True)
+    response = await get_ai_response(message.text)
     if response:
         try:
             await message.reply(f"🤖 (AI Assistant):\n\n{response}", parse_mode="markdown")
