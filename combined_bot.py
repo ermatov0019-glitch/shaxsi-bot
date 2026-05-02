@@ -72,8 +72,10 @@ async def start_handler(message: types.Message):
 
 @dp.message(F.text)
 async def bot_chat_handler(message: types.Message):
+    logger.info(f"Botga xabar keldi: {message.text[:50]}...")
     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
     response = await get_ai_response(message.text)
+    logger.info(f"Bot AI javobi: {response[:50]}...")
     try:
         await message.answer(response, parse_mode="Markdown")
     except Exception:
