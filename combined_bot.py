@@ -2,6 +2,7 @@ import asyncio
 import os
 import logging
 import threading
+import traceback
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
@@ -19,32 +20,33 @@ API_ID = os.getenv("API_ID")
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("STRING_SESSION")
 
-# --- AI Setup ---
-genai.configure(api_key=GEMINI_API_KEY)
-SYSTEM_PROMPT = """
-Siz foydalanuvchining shaxsiy va aqlli yordamchisisiz. Vazifangiz - lichkasiga u yo'qligida javob berish.
-Samimiy, qisqa va faqat o'zbek tilida javob bering.
-"""
-ai_model = genai.GenerativeModel(model_name='gemini-1.5-flash', system_instruction=SYSTEM_PROMPT)
-
 # --- Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- AI Logic ---
+# --- AI Setup ---
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+    SYSTEM_PROMPT = "Siz foydalanuvchining shaxsiy yordamchisiz. Samimiy va faqat o'zbek tilida javob bering."
+    ai_model = genai.GenerativeModel(model_name='gemini-1.5-flash', system_instruction=SYSTEM_PROMPT)
+except Exception as e:
+    logger.error(f"AI Setup Error: {e}")
+    ai_model = None
+
 async def get_ai_response(prompt: str):
+    if not ai_model:
+        return "AI hozircha ishlamayapti. 😔"
     try:
         response = await ai_model.generate_content_async(prompt)
         return response.text
     except Exception as e:
-        logger.error(f"AI Error: {e}")
-        return "Kechirasiz, AI hozircha javob bera olmaydi. 😔"
+        logger.error(f"AI Logic Error: {e}")
+        return "Xatolik yuz berdi. 😔"
 
-# --- Render Port Binding ---
+# --- Health Check ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
         self.end_headers()
         self.wfile.write(b"OK")
 
@@ -54,54 +56,64 @@ def run_http_server():
     server.serve_forever()
 
 async def main():
-    # 1. Initialize Bots inside main() to avoid loop errors
+    logger.info("Botni ishga tushirish boshlandi...")
+    
+    # 1. Initialize Bots
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     
+    userbot = None
     if STRING_SESSION:
-        userbot = Client("my_account", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
-    else:
-        userbot = Client("my_account", api_id=API_ID, api_hash=API_HASH)
+        try:
+            userbot = Client("my_account", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
+            logger.info("UserBot konfiguratsiyasi tayyor.")
+        except Exception as e:
+            logger.error(f"UserBot Init Error: {e}")
 
-    # --- Bot Handlers ---
+    # --- Handlers ---
     @dp.message(Command("start"))
     async def start_handler(message: types.Message):
         await message.answer("Salom! Men Render-da ishlayotgan aqlli botman. 🚀")
 
     @dp.message(F.text)
     async def bot_chat_handler(message: types.Message):
-        logger.info(f"Bot: {message.text[:50]}")
-        await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
         response = await get_ai_response(message.text)
         try:
             await message.answer(response, parse_mode="Markdown")
         except:
             await message.answer(response)
 
-    # --- UserBot Handlers ---
-    @userbot.on_message(filters.private & ~filters.me)
-    async def userbot_auto_reply(client, message):
-        logger.info(f"UserBot: {message.text[:50]}")
-        response = await get_ai_response(message.text)
-        if response:
-            try:
-                await message.reply(f"🤖 (AI Assistant):\n\n{response}", parse_mode="markdown")
-            except:
-                await message.reply(f"🤖 (AI Assistant):\n\n{response}")
+    if userbot:
+        @userbot.on_message(filters.private & ~filters.me)
+        async def userbot_auto_reply(client, message):
+            response = await get_ai_response(message.text)
+            if response:
+                try:
+                    await message.reply(f"🤖 (AI Assistant):\n\n{response}", parse_mode="markdown")
+                except:
+                    await message.reply(f"🤖 (AI Assistant):\n\n{response}")
 
-    # --- Startup ---
-    await userbot.start()
-    logger.info("UserBot started.")
-    
+    # --- Start ---
+    if userbot:
+        try:
+            await userbot.start()
+            logger.info("UserBot muvaffaqiyatli ishga tushdi.")
+        except Exception as e:
+            logger.error(f"UserBot Start Error: {e}")
+
     try:
-        print("Bot polling boshlanmoqda (v2.0)...")
+        logger.info("Aiogram polling boshlanmoqda...")
         await dp.start_polling(bot, skip_updates=True)
     finally:
-        await userbot.stop()
+        if userbot:
+            await userbot.stop()
 
 if __name__ == "__main__":
+    # Start HTTP server immediately
     threading.Thread(target=run_http_server, daemon=True).start()
+    
     try:
         asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        pass
+    except Exception:
+        logger.error("KRASH SODIR BO'LDI!")
+        logger.error(traceback.format_exc())
