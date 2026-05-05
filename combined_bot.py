@@ -8,13 +8,13 @@ import threading
 import traceback
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
-import google.generativeai as genai
+from groq import AsyncGroq
 
 # Load environment variables
 load_dotenv()
 
 # --- Config ---
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 API_ID = os.getenv("API_ID")
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("STRING_SESSION")
@@ -23,21 +23,25 @@ STRING_SESSION = os.getenv("STRING_SESSION")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- AI Setup ---
 try:
-    genai.configure(api_key=GEMINI_API_KEY)
     SYSTEM_PROMPT = "Siz foydalanuvchining shaxsiy yordamchisiz. Samimiy va faqat o'zbek tilida javob bering."
-    ai_model = genai.GenerativeModel(model_name='gemini-1.5-flash', system_instruction=SYSTEM_PROMPT)
+    groq_client = AsyncGroq(api_key=GROQ_API_KEY)
 except Exception as e:
     logger.error(f"AI Setup Error: {e}")
-    ai_model = None
+    groq_client = None
 
 async def get_ai_response(prompt: str):
-    if not ai_model:
+    if not groq_client:
         return "AI hozircha ishlamayapti. 😔"
     try:
-        response = await ai_model.generate_content_async(prompt)
-        return response.text
+        completion = await groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            model="llama3-70b-8192",
+        )
+        return completion.choices[0].message.content
     except Exception as e:
         logger.error(f"AI Logic Error: {e}")
         return "Xatolik yuz berdi. 😔"
