@@ -9,8 +9,6 @@ import traceback
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
 import google.generativeai as genai
-from pyrogram import Client, filters, idle
-from pyrogram.enums import ParseMode
 
 # Load environment variables
 load_dotenv()
@@ -62,6 +60,9 @@ async def main():
     if not STRING_SESSION:
         logger.error("STRING_SESSION kiritilmagan! Bot ishlay olmaydi.")
         return
+        
+    from pyrogram import Client, filters, idle
+    from pyrogram.enums import ParseMode
 
     try:
         clean_api_id = int(str(API_ID).strip().replace("+", ""))
