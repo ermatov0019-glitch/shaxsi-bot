@@ -93,10 +93,10 @@ async def main():
         response = await get_ai_response(message.text)
         if response:
             try:
-                await message.reply(f"🤖 (AI Assistant):\n\n{response}", parse_mode=ParseMode.MARKDOWN)
+                await message.reply(f"Ermatov yordamchisi:\n\n{response}", parse_mode=ParseMode.MARKDOWN)
             except Exception as e:
                 logger.error(f"Reply Error: {e}")
-                await message.reply(f"🤖 (AI Assistant):\n\n{response}")
+                await message.reply(f"Ermatov yordamchisi:\n\n{response}")
 
     try:
         await userbot.start()
