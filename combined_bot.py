@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 try:
     genai.configure(api_key=GEMINI_API_KEY)
     SYSTEM_PROMPT = "Siz foydalanuvchining shaxsiy yordamchisiz. Samimiy va faqat o'zbek tilida javob bering."
-    ai_model = genai.GenerativeModel(model_name='gemini-1.5-flash-latest', system_instruction=SYSTEM_PROMPT)
+    ai_model = genai.GenerativeModel(model_name='gemini-1.5-flash', system_instruction=SYSTEM_PROMPT)
 except Exception as e:
     logger.error(f"AI Setup Error: {e}")
     ai_model = None
