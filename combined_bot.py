@@ -7,16 +7,15 @@ import logging
 import threading
 import traceback
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
 from dotenv import load_dotenv
 import google.generativeai as genai
+from pyrogram import Client, filters, idle
+from pyrogram.enums import ParseMode
 
 # Load environment variables
 load_dotenv()
 
 # --- Config ---
-BOT_TOKEN = os.getenv("BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 API_ID = os.getenv("API_ID")
 API_HASH = os.getenv("API_HASH")
@@ -58,80 +57,54 @@ def run_http_server():
     server.serve_forever()
 
 async def main():
-    logger.info("Botni ishga tushirish (Python 3.14 SYNC=0 fix)...")
+    logger.info("UserBotni ishga tushirish (Oddiy bot olib tashlandi)...")
     
-    # 1. Initialize Aiogram
-    bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher()
-    
-    # 2. Import Pyrogram now (SYNC is already disabled)
-    from pyrogram import Client, filters
-    
-    userbot = None
-    if STRING_SESSION:
-        try:
-            # Safely convert API_ID to int
-            clean_api_id = int(str(API_ID).strip().replace("+", ""))
-            userbot = Client(
-                "my_account", 
-                api_id=clean_api_id, 
-                api_hash=API_HASH, 
-                session_string=STRING_SESSION, 
-                in_memory=True
-            )
-            logger.info("UserBot konfiguratsiyasi tayyor.")
-        except Exception as e:
-            logger.error(f"UserBot Init Error (API_ID xato bo'lishi mumkin): {e}")
-
-    # --- Handlers ---
-    @dp.message(Command("start"))
-    async def start_handler(message: types.Message):
-        await message.answer("Salom! Men Render-da ishlayotgan aqlli botman. 🚀")
-
-    @dp.message(F.text)
-    async def bot_chat_handler(message: types.Message):
-        response = await get_ai_response(message.text)
-        try:
-            await message.answer(response, parse_mode="Markdown")
-        except:
-            await message.answer(response)
-
-    if userbot:
-        # --- UserBot Handlers ---
-        @userbot.on_message(filters.private & filters.incoming)
-        async def userbot_auto_reply(client, message):
-            logger.info(f"UserBot: {message.text[:50]}")
-            response = await get_ai_response(message.text)
-            if response:
-                try:
-                    from pyrogram.enums import ParseMode
-                    await message.reply(f"🤖 (AI Assistant):\n\n{response}", parse_mode=ParseMode.MARKDOWN)
-                except Exception as e:
-                    logger.error(f"Reply Error: {e}")
-                    await message.reply(f"🤖 (AI Assistant):\n\n{response}")
-
-    # --- Start ---
-    if userbot:
-        try:
-            await userbot.start()
-            logger.info("UserBot muvaffaqiyatli ishga tushdi.")
-        except Exception as e:
-            logger.error(f"UserBot ishga tushmadi (Session xatosi bo'lishi mumkin): {e}")
+    if not STRING_SESSION:
+        logger.error("STRING_SESSION kiritilmagan! Bot ishlay olmaydi.")
+        return
 
     try:
-        print("Bot polling boshlanmoqda (v3.0)...")
-        await dp.start_polling(bot, skip_updates=True)
-    finally:
-        if userbot:
+        clean_api_id = int(str(API_ID).strip().replace("+", ""))
+        userbot = Client(
+            "my_account", 
+            api_id=clean_api_id, 
+            api_hash=API_HASH, 
+            session_string=STRING_SESSION, 
+            in_memory=True
+        )
+    except Exception as e:
+        logger.error(f"UserBot Init Error: {e}")
+        return
+
+    @userbot.on_message(filters.private & filters.incoming)
+    async def userbot_auto_reply(client, message):
+        logger.info(f"Yangi xabar keldi: {message.text[:50] if message.text else 'rasm/video'}")
+        if not message.text:
+            return # faqat matnli xabarlarga javob beradi
+            
+        response = await get_ai_response(message.text)
+        if response:
             try:
-                await userbot.stop()
-            except:
-                pass
+                await message.reply(f"🤖 (AI Assistant):\n\n{response}", parse_mode=ParseMode.MARKDOWN)
+            except Exception as e:
+                logger.error(f"Reply Error: {e}")
+                await message.reply(f"🤖 (AI Assistant):\n\n{response}")
+
+    try:
+        await userbot.start()
+        logger.info("UserBot muvaffaqiyatli ishga tushdi va xabarlarni kutmoqda...")
+        await idle()
+    except Exception as e:
+        logger.error(f"UserBot ishlashida xatolik: {e}")
+    finally:
+        await userbot.stop()
 
 if __name__ == "__main__":
     threading.Thread(target=run_http_server, daemon=True).start()
     try:
         asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Dastur to'xtatildi.")
     except Exception:
         logger.error("KRASH SODIR BO'LDI!")
         logger.error(traceback.format_exc())
