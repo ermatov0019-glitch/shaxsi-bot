@@ -1,6 +1,6 @@
 aiogram
 python-dotenv
-google-generativeai
+groq
 aiohttp
 pyrogram
 tgcrypto
