@@ -104,8 +104,10 @@ async def main():
             response = await get_ai_response(message.text)
             if response:
                 try:
-                    await message.reply(f"🤖 (AI Assistant):\n\n{response}", parse_mode="markdown")
-                except:
+                    from pyrogram.enums import ParseMode
+                    await message.reply(f"🤖 (AI Assistant):\n\n{response}", parse_mode=ParseMode.MARKDOWN)
+                except Exception as e:
+                    logger.error(f"Reply Error: {e}")
                     await message.reply(f"🤖 (AI Assistant):\n\n{response}")
 
     # --- Start ---
