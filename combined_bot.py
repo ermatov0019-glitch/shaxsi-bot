@@ -42,7 +42,7 @@ async def get_ai_response(prompt: str):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}
             ],
-            model="llama3-70b-8192",
+            model="llama-3.3-70b-versatile",
         )
         return completion.choices[0].message.content
     except Exception as e:
