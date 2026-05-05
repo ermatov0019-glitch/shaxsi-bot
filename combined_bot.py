@@ -25,14 +25,17 @@ logger = logging.getLogger(__name__)
 
 try:
     SYSTEM_PROMPT = "Siz foydalanuvchining shaxsiy yordamchisiz. Samimiy va faqat o'zbek tilida javob bering."
-    groq_client = AsyncGroq(api_key=GROQ_API_KEY)
+    groq_api_key_clean = (GROQ_API_KEY or "").strip()
+    groq_client = AsyncGroq(api_key=groq_api_key_clean)
+    setup_error = None
 except Exception as e:
     logger.error(f"AI Setup Error: {e}")
     groq_client = None
+    setup_error = str(e)
 
 async def get_ai_response(prompt: str):
     if not groq_client:
-        return "AI hozircha ishlamayapti. 😔"
+        return f"AI ishlamayapti. Sababi (Setup Error): {setup_error} | GROQ_API_KEY tekshiring."
     try:
         completion = await groq_client.chat.completions.create(
             messages=[
@@ -44,7 +47,7 @@ async def get_ai_response(prompt: str):
         return completion.choices[0].message.content
     except Exception as e:
         logger.error(f"AI Logic Error: {e}")
-        return "Xatolik yuz berdi. 😔"
+        return f"Xatolik yuz berdi: {str(e)}"
 
 # --- Health Check ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
